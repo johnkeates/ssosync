@@ -17,7 +17,7 @@ RUN go mod download
 # Copy the code into the container
 COPY . .
 
-# Build the application
+# Build the application from source
 RUN go build -o ssosync .
 
 # Move to /dist directory as the place for resulting binary folder
