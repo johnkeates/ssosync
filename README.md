@@ -118,8 +118,9 @@ Flags:
   -d, --debug                       enable verbose / debug logging
   -e, --endpoint string             AWS SSO SCIM API Endpoint
   -u, --google-admin string         Google Workspace admin user email
+      --google-customer-id string   Google Workspace customer id
   -c, --google-credentials string   path to Google Workspace credentials file (default "credentials.json")
-  -g, --group-match string          Google Workspace Groups filter query parameter, example: 'name:Admin* email:aws-*', see: https://developers.google.com/admin-sdk/directory/v1/guides/search-groups
+  -g, --group-match strings         Google Workspace Groups filter query parameter, example: 'name:Admin* email:aws-*', see: https://developers.google.com/admin-sdk/directory/v1/guides/search-groups (You can specify this flag multiple times for OR clause)
   -h, --help                        help for ssosync
       --ignore-groups strings       ignores these Google Workspace groups
       --ignore-users strings        ignores these Google Workspace users
@@ -127,14 +128,18 @@ Flags:
       --log-format string           log format (default "text")
       --log-level string            log level (default "info")
   -s, --sync-method string          Sync method to use (users_groups|groups) (default "groups")
-  -m, --user-match string           Google Workspace Users filter query parameter, example: 'name:John* email:admin*', see: https://developers.google.com/admin-sdk/directory/v1/guides/search-users
+  -m, --user-match strings          Google Workspace Users filter query parameter, example: 'name:John* email:admin*', see: https://developers.google.com/admin-sdk/directory/v1/guides/search-users (You can specify this flag multiple times for OR clause)
   -v, --version                     version for ssosync
 ```
 
 The function has `two behaviour` and these are controlled by the `--sync-method` flag, this behavior could be
 
-1. `groups`: __(default)__ The sync procedure work base on Groups, gets the Google Workspace groups and their members, then creates in AWS SSO the users (members of the Google Workspace groups), then the groups and at the end assign the users to their respective groups.
-2. `users_groups`: __(original behavior, previous versions)__ The sync procedure is simple, gets the Google Workspace users and creates these in AWS SSO Users; then gets Google Workspace groups and creates these in AWS SSO Groups and assigns users to belong to the AWS SSO Groups.
+1. `groups`: __(default)__
+   * The sync procedure work base on Groups, gets the Google Workspace groups and their members, then creates in AWS SSO the users (members of the Google Workspace groups), then the groups and at the end assign the users to their respective groups.
+   * This method use: `Google Workspace groups name` --> `AWS SSO groups name`
+2. `users_groups`: __(original behavior, previous versions)__
+   * The sync procedure is simple, gets the Google Workspace users and creates these in AWS SSO Users; then gets Google Workspace groups and creates these in AWS SSO Groups and assigns users to belong to the AWS SSO Groups.
+   * This method use: `Google Workspace groups email` --> `AWS SSO groups name`
 
 Flags Notes:
 
@@ -143,11 +148,13 @@ Flags Notes:
 * `--ignore-groups` works for both `--sync-method` values. Example: --ignore-groups group1@example.com,group1@example.com` or `SSOSYNC_IGNORE_GROUPS=group1@example.com,group1@example.com`
 * `--group-match` works for both `--sync-method` values and also in combination with `--ignore-groups` and `--ignore-users`.  This is the filter query passed to the [Google Workspace Directory API when search Groups](https://developers.google.com/admin-sdk/directory/v1/guides/search-groups), if the flag is not used, groups are not filtered.
 * `--user-match` works for both `--sync-method` values and also in combination with `--ignore-groups` and `--ignore-users`.  This is the filter query passed to the [Google Workspace Directory API when search Users](https://developers.google.com/admin-sdk/directory/v1/guides/search-users), if the flag is not used, users are not filtered.
+* `--google-customer-id` should be used when assigning admin roles to a GCP service-account.
 
 NOTES:
 
 1. Depending on the number of users and groups you have, maybe you can get `AWS SSO SCIM API rate limits errors`, and more frequently happens if you execute the sync many times in a short time.
 2. Depending on the number of users and groups you have, `--debug` flag generate too much logs lines in your AWS Lambda function.  So test it in locally with the `--debug` flag enabled and disable it when you use a AWS Lambda function.
+3. `--sync-method "Groups"` and `--sync-method "users_groups"` are incompatible, because the first use the Google group name as an AWS group name and the second one use the Google group email, take this into consideration.
 
 ## AWS Lambda Usage
 
